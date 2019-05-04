@@ -94,7 +94,6 @@ def parse_film(html):
         except urllib.error.URLError:
             pass
 
-
     film = {'Назва фільму': name,
             'Назва(англ.)': name_eng,
             'Виробник': content,
@@ -103,8 +102,6 @@ def parse_film(html):
     # print(film)
     # name, name_engl, content, rating[15:], descript
     return film
-
-
 # def clean_data(text):#----------------------- чистка#
 #     return text.replace('\u2032', '')#------- чистка#
 
