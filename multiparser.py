@@ -6,21 +6,20 @@ import urllib.request
 import urllib.error
 from multiprocessing import Pool
 # from urllib.request import urlopen
-url = 'http://moviestape.net/katalog_filmiv/'
+
 def get_html(url):
     try:
         r = requests.get(url)
     except requests.ConnectionError:
         return
     if r.status_code < 400:
+        print('get_html :' + r.text[:40])
         return r.text
-        # r = requests.get(url)
-        # # print(r.text)
-        # return r.text
+
 def get_page_count(html):
     soup = BeautifulSoup(html, 'lxml')
     cross_page = soup.find('div', class_='navigation')
-    # print (int (cross_page.find_all ('a')[-2].text))
+    print('get_page_count :', int(cross_page.find_all ('a')[-2].text))
     return int(cross_page.find_all('a')[-2].text)
 
 def parse_link(html):
@@ -30,6 +29,7 @@ def parse_link(html):
     for div in divs:
         a = div.find('p', class_='title').find('a').get('href')
         links.append(a)
+    print('parse_link :', links[:2])
     return links
 
 def parse_film(html):
@@ -63,7 +63,6 @@ def parse_film(html):
         imgs = div.find('div', class_='f-content2_ss').find_all('img')
     except:
         imgs =[]
-
     film = {'Назва фільму': name,
             'Назва(англ.)': name_eng,
             'Виробник': content,
@@ -72,13 +71,14 @@ def parse_film(html):
             'poster': img_post,
             'screens': imgs
             }
+    print('parse_film :', film['Назва фільму'])
     return film
 # def clean_data(text):#----------------------- чистка#
 #     return text.strip().replace('\u2032', '').replace('\n', '').replace('/', '').replace('\xa0', '')\
 
 
 def write_csv(film):
-    with open('test#1\my_parser.csv', 'a', newline="", encoding="utf-8") as f:  # E:\Testpython\PythonLabs\
+    with open('test\my_parser.csv', 'a', newline="", encoding="utf-8") as f:  # E:\Testpython\PythonLabs\
         writer = csv.writer(f)
         writer.writerow(
             (film['Назва фільму'],
@@ -88,7 +88,7 @@ def write_csv(film):
              film['Зміст']))
     url_img_post = 'http://moviestape.net' + film['poster']
     try:
-        urllib.request.urlretrieve(url_img_post, "test#1\№" +'_'
+        urllib.request.urlretrieve(url_img_post, "test\_"
                                                  + film['Назва фільму'].replace(':', '_').replace('(', '_')
                                                  .replace(')', '').replace('?', '_').rstrip()
                                                  + '_poster.jpg')
@@ -97,7 +97,7 @@ def write_csv(film):
     for i, img in enumerate(film['screens']):
         url_img = 'http://moviestape.net' + img.get('src')
         try:
-            urllib.request.urlretrieve(url_img, "test#1\№" +'_'
+            urllib.request.urlretrieve(url_img, "test\_"
                                        + film['Назва фільму'].replace(':', '_').replace('(', '_').replace(')', '')
                                        .replace('?', '_').rstrip()
                                        + '_screen_'+str(i + 1)+'.jpg')
@@ -105,18 +105,19 @@ def write_csv(film):
             pass
         except urllib.error.URLError:
             pass
+    print('write_csv :-> download')
 def make_all(link):
     html = get_html(link)
     film = parse_film(html)
     write_csv(film)
+    print('make_all(link)')
 
 def main():
+    url = 'http://moviestape.net/katalog_filmiv/'
     start = datetime.now()
-    global all_links
-    global link
     all_links = []
     page_count = get_page_count(get_html(url))
-    for page in range(1, page_count + 1):
+    for page in range(1, page_count - 247):
         links = parse_link(get_html(url + 'page/%d/' % page))
         for link in links:
             all_links.append(link)
@@ -125,8 +126,9 @@ def main():
     #     html = get_html(link)
     #     film = parse_film(html)
     #     write_csv(film)
-    with Pool(40) as p:
+    with Pool(10) as p:
         p.map(make_all, all_links)
+        print('p.map(make_all, all_links)')
     finish = datetime.now()
     total = finish - start
     print(total)
